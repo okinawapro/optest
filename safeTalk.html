@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>safeTALK Interactive Simulator</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #eff6ff;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --error: #dc2626;
+            --error-light: #fef2f2;
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --bg-page: #f3f4f6;
+            --bg-card: #ffffff;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .app-container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.25rem;
+            color: var(--primary);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 9999px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 25%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Matrix indicator */
+        .step-indicators {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .step-badge.active {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+        }
+
+        /* Primary Card Layout */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .scenario-box {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            padding: 1.25rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+        }
+
+        .prompt-text {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .options-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #f8fafc;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background: var(--success-light);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .option-btn.incorrect {
+            background: var(--error-light);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        /* Inline Feedback Dynamic Banner */
+        .feedback-banner {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .feedback-banner.success {
+            background: var(--success-light);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .feedback-banner.error {
+            background: var(--error-light);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .action-btn {
+            display: block;
+            width: 100%;
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: background 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .center-btn {
+            max-width: 280px;
+            margin: 1.5rem auto 0 auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal Structure Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-window {
+            background: var(--bg-card);
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(15px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .modal-close-icon {
+            background: none;
+            border: none;
+            font-size: 1.75rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        .modal-close-icon:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            /* Accessible scrolling metrics */
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-muted) var(--border);
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-body::-webkit-scrollbar-track {
+            background: var(--bg-page);
+        }
+        .modal-body::-webkit-scrollbar-thumb {
+            background-color: var(--text-muted);
+            border-radius: 20px;
+        }
+
+        .modal-body h3 {
+            margin: 1.25rem 0 0.5rem 0;
+            color: var(--text-main);
+            font-size: 1.15rem;
+        }
+        .modal-body h3:first-of-type {
+            margin-top: 0;
+        }
+
+        .modal-body p, .modal-body li {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-body ul {
+            padding-left: 1.25rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>safeTALK Simulator</h1>
+        <p>Master the suicide alertness framework step-by-step</p>
+    </header>
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="step-indicators">
+        <div class="step-badge" id="badge-T">T - Tell</div>
+        <div class="step-badge" id="badge-A">A - Ask</div>
+        <div class="step-badge" id="badge-L">L - Listen</div>
+        <div class="step-badge" id="badge-K">K - KeepSafe</div>
+    </div>
+
+    <!-- Active Simulator Card -->
+    <div class="card" id="quiz-card">
+        <div class="scenario-box" id="scenario-display">Loading core simulation metrics...</div>
+        <div class="prompt-text">Identify the correct procedural phase of the safeTALK protocol shown above:</div>
+        <div class="options-stack" id="options-stack"></div>
+        <div class="feedback-banner" id="feedback-banner"></div>
+        <button class="action-btn hidden" id="next-btn">Advance Simulation</button>
+    </div>
+
+    <!-- Terminal Completion State -->
+    <div class="card hidden" id="completion-card" style="text-align: center;">
+        <h2 style="color: var(--success); font-size: 1.75rem; margin-bottom: 1rem;">Simulation Suite Finalized</h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">You have successfully navigated through all intervention states of the TALK action sequencing matrix.</p>
+        <button class="action-btn center-btn" id="trigger-modal-btn">Review Lessons Learned</button>
+    </div>
+</div>
+
+<!-- Modal Pop-up Container Layout -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h2>safeTALK: Lessons Learned</h2>
+            <button class="modal-close-icon" id="close-modal-top" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <h3>Program Objective</h3>
+            <p>safeTALK is a half-day training program created by LivingWorks that prepares individuals over the age of 15 to become suicide-alert helpers. It emphasizes that basic awareness networks can save lives by keeping individuals connected to safe resources.</p>
+
+            <h3>The TALK Framework Framework Matrix</h3>
+            <ul>
+                <li><strong>T - Tell:</strong> People thinking about suicide drop direct or indirect invitations through actions, words, physical appearance, or shifting settings. Helpers must notice these signs and override the instinct to miss, dismiss, or avoid them.</li>
+                <li><strong>A - Ask:</strong> If signs point toward suicide, you must clarify directly. Ask clearly and unambiguously: <em>"Are you thinking about suicide?"</em> Avoid euphemisms like "hurting yourself" to ensure direct alignment.</li>
+                <li><strong>L - Listen:</strong> Focus entirely on the person's experience. Do not pass judgment, give premature advice, or minimize their pain. Listen to help them feel heard and validated before leaping immediately to a solution.</li>
+                <li><strong>K - KeepSafe:</strong> Connect the individual quickly to a caregiver who has formal intervention skills (such as an ASIST trained professional, crisis counselor, or medical provider). Never hold the responsibility alone.</li>
+            </ul>
+
+            <h3>Core Reminders for Helpers</h3>
+            <p>Suicide alertness is not therapy. A safeTALK helper’s role is to bridge the gap between isolation and professional safety nets. By completing the TALK workflow loop, you ensure a warm hand-off rather than an isolated struggle.</p>
+        </div>
+        <div class="modal-footer">
+            <button id="close-modal-bottom">Close & Exit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Valid safeTALK dataset configured precisely to standard curriculum guidelines
+    const simulationDatabase = [
+        {
+            step: "T",
+            text: "A close coworker suddenly exhibits drastic shifts in behavior, begins clean-sorting their hard drive assets, and drops an offhanded comment stating, \"It won't matter what happens here next month anyway.\" You intentionally pause to examine these warning signs.",
+            options: [
+                { text: "Tell: Recognizing indirect invitations and refusing to dismiss them.", valid: true },
+                { text: "Ask: Initiating direct documentation parameters for safety checks.", valid: false },
+                { text: "Listen: Giving open-ended conversational advice immediately.", valid: false },
+                { text: "KeepSafe: Dialing an emergency crisis operator right on the spot.", valid: false }
+            ],
+            rationale: "Correct. The 'Tell' step focuses entirely on recognizing specific invitations (behavioral changes, verbal cues) and actively choosing not to miss, dismiss, or avoid them."
+        },
+        {
+            step: "A",
+            text: "You step away into a private room with your peer and clear all communication barriers. You look directly at them and ask: \"You've mentioned things won't matter soon. Are you thinking about suicide?\"",
+            options: [
+                { text: "Tell: Tracking contextual clues in their workspace profile.", valid: false },
+                { text: "Ask: Using bold, clear, and unambiguous language explicitly naming suicide.", valid: true },
+                { text: "Listen: Allowing them to detail their workplace stress parameters.", valid: false },
+                { text: "KeepSafe: Instantly connecting them to an HR safety representative.", valid: false }
+            ],
+            rationale: "Perfect validation. The 'Ask' stage demands extreme structural clarity. Avoiding vague phrases like 'hurting yourself' eliminates misinterpretation risks."
+        },
+        {
+            step: "L",
+            text: "The coworker admits they are struggling deeply. Instead of interrupting to offer structural solutions, say everything will be fine, or talk about your own experiences, you sit quietly, look at them, and validate how heavy this burden must feel.",
+            options: [
+                { text: "Tell: Looking out for physical signs of exhaustion.", valid: false },
+                { text: "Ask: Confirming if they have a specific date or time in mind.", valid: false },
+                { text: "Listen: Prioritizing their immediate pain and emotional reality over quick solutions.", valid: true },
+                { text: "KeepSafe: Standardizing a path toward safe clinical counseling.", valid: false }
+            ],
+            rationale: "Spot on. 'Listen' means sitting safely with their emotional state without jumping straight into logic or trying to 'fix' their situation prematurely."
+        },
+        {
+            step: "K",
+            text: "You tell your coworker that you want to support them but cannot keep this a secret. Together, you sit down and call a crisis text line or walk over to connect them directly with an ASIST-trained intervention specialist.",
+            options: [
+                { text: "Tell: Documenting the problem statements for records.", valid: false },
+                { text: "Ask: Re-verifying if the thoughts are still actively present.", valid: false },
+                { text: "Listen: Documenting the emotional historical context of their struggles.", valid: false },
+                { text: "KeepSafe: Securing an intentional, direct link between the person and an official caregiver.", valid: true }
+            ],
+            rationale: "Exactly. The 'KeepSafe' mechanism closes the circle by establishing a direct connection to professional or safety-certified help resources."
+        }
+    ];
+
+    let currentStepIndex = 0;
+
+    // DOM Engine Registry
+    const quizCard = document.getElementById('quiz-card');
+    const completionCard = document.getElementById('completion-card');
+    const scenarioDisplay = document.getElementById('scenario-display');
+    const optionsStack = document.getElementById('options-stack');
+    const feedbackBanner = document.getElementById('feedback-banner');
+    const nextBtn = document.getElementById('next-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const modalOverlay = document.getElementById('modal-overlay');
+
+    function executeActiveState() {
+        feedbackBanner.style.display = 'none';
+        nextBtn.classList.add('hidden');
+        
+        const activeRecord = simulationDatabase[currentStepIndex];
+        
+        // Update matrix badges
+        document.querySelectorAll('.step-badge').forEach(el => el.classList.remove('active'));
+        document.getElementById(`badge-${activeRecord.step}`).classList.add('active');
+
+        // Render metrics tracking bar
+        progressBar.style.width = `${((currentStepIndex + 1) / simulationDatabase.length) * 100}%`;
+        scenarioDisplay.innerText = activeRecord.text;
+        
+        optionsStack.innerHTML = '';
+        activeRecord.options.forEach((opt) => {
+            const button = document.createElement('button');
+            button.className = 'option-btn';
+            button.innerText = opt.text;
+            button.onclick = () => evaluationEngine(button, opt.valid, activeRecord.rationale);
+            optionsStack.appendChild(button);
+        });
+    }
+
+    function evaluationEngine(targetElement, isValid, rationaleText) {
+        const structuralButtons = optionsStack.querySelectorAll('.option-btn');
+        structuralButtons.forEach(btn => btn.disabled = true);
+
+        if (isValid) {
+            targetElement.classList.add('correct');
+            feedbackBanner.className = 'feedback-banner success';
+            feedbackBanner.innerText = rationaleText;
+        } else {
+            targetElement.classList.add('incorrect');
+            feedbackBanner.className = 'feedback-banner error';
+            feedbackBanner.innerText = "That choice misses the core action of this step. Look for the selection matching the foundational safeTALK criteria.";
+            
+            // Highlight actual target record path
+            const preciseIndex = simulationDatabase[currentStepIndex].options.findIndex(x => x.valid);
+            if (preciseIndex !== -1) {
+                structuralButtons[preciseIndex].classList.add('correct');
+            }
+        }
+        feedbackBanner.style.display = 'block';
+        nextBtn.classList.remove('hidden');
+    }
+
+    nextBtn.onclick = () => {
+        currentStepIndex++;
+        if (currentStepIndex < simulationDatabase.length) {
+            executeActiveState();
+        } else {
+            quizCard.classList.add('hidden');
+            completionCard.classList.remove('hidden');
+            document.querySelectorAll('.step-badge').forEach(el => el.classList.remove('active'));
+        }
+    };
+
+    // Modal Control Logic
+    const toggleModal = (state) => {
+        if (state) modalOverlay.classList.add('open');
+        else modalOverlay.classList.remove('open');
+    };
+
+    document.getElementById('trigger-modal-btn').onclick = () => toggleModal(true);
+    document.getElementById('close-modal-top').onclick = () => toggleModal(false);
+    document.getElementById('close-modal-bottom').onclick = () => toggleModal(false);
+
+    // Dynamic dismiss on overlay backing targets
+    modalOverlay.onclick = (e) => {
+        if(e.target === modalOverlay) toggleModal(false);
+    };
+
+    // Initial Execution Launch
+    executeActiveState();
+</script>
+
+</body>
+</html>
