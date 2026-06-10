@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SITREP: Suicide Alertness Scenario (saveTALK)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+        }
+
+        /* Mission Header */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Card */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .step-indicator {
+            font-size: 0.85rem;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .situation-report {
+            background-color: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid var(--accent-primary);
+            padding: 16px;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .dialogue {
+            font-style: italic;
+            color: #cbd5e1;
+            margin-top: 8px;
+            padding-left: 12px;
+            border-left: 2px solid var(--border);
+        }
+
+        .prompt-text {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* Choice Buttons */
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-choice {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 14px 18px;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            transition: all 0.2s ease;
+        }
+
+        .btn-choice:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        /* Immediate Feedback block */
+        .feedback-box {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 6px;
+            display: none;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .feedback-box.correct {
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--success);
+            color: #d1fae5;
+        }
+
+        .feedback-box.incorrect {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--danger);
+            color: #fee2e2;
+        }
+
+        .btn-next {
+            display: none;
+            background-color: var(--accent-primary);
+            color: var(--text-main);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+
+        .btn-next:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Lessons Learned Action Button */
+        #btn-lessons-learned {
+            display: none;
+            background-color: var(--success);
+            color: var(--text-main);
+            border: none;
+            padding: 14px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            text-transform: uppercase;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            animation: pulse 2s infinite;
+        }
+
+        #btn-lessons-learned:hover {
+            background-color: #059669;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--success);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+            line-height: 1.6;
+        }
+
+        /* Custom Scrollbar for Modal Body */
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-body::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        .modal-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .modal-body h4 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            color: var(--accent-primary);
+        }
+        .modal-body h4:first-of-type {
+            margin-top: 0;
+        }
+
+        .modal-body ul {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-close {
+            background-color: var(--border);
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-close:hover {
+            background-color: #475569;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>SITREP: Peer Support</h1>
+        <span class="badge">LivingWorks saveTALK Training</span>
+    </div>
+
+    <div class="card" id="activity-card">
+        <!-- Dynamic content injected here by JavaScript -->
+    </div>
+
+    <button id="btn-lessons-learned" onclick="openModal()">🔓 View Lessons Learned</button>
+</div>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Lessons Learned</h3>
+        </div>
+        <div class="modal-body">
+            <h4>The saveTALK Framework</h4>
+            <p>In high-stress environments, peer awareness saves lives. The saveTALK methodology breaks suicide alertness down into four distinct steps:</p>
+            
+            <h4>1. Talk (Identify the signs)</h4>
+            <p>Do not ignore invitations to help. When someone indicates distress physically, verbally, or behaviorally, pay close attention. Act immediately instead of assuming someone else will.</p>
+
+            <h4>2. Ask (The direct approach)</h4>
+            <ul>
+                <li>Never beat around the bush or use vague euphemisms like "are you planning to do something silly?".</li>
+                <li>Ask clearly and directly: <strong>"Are you thinking about suicide?"</strong>. This shows you are ready to talk about the reality of what they are experiencing.</li>
+            </ul>
+
+            <h4>3. Listen (Give full attention)</h4>
+            <ul>
+                <li>Avoid giving immediate solutions, dismissing their pain, or telling them to "tough it out."</li>
+                <li>Listen actively without judgment. Allow them to express their feelings. Their pain is real to them.</li>
+            </ul>
+
+            <h4>4. KeepSafe (Connect to help)</h4>
+            <p>Never agree to keep suicidal thoughts a secret. Connect them directly to a trained caregiver, a suicide safety resource, or the Suicide & Crisis Lifeline. Walk with them through this process; do not just hand over a phone number and walk away.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Scenario Step Data
+    const steps = [
+        {
+            stage: "T - TALK",
+            sitrep: "You're catching up with Miller, a member of your unit who recently returned from a difficult deployment. He has been unusually quiet and isolated. While cleaning gear, he sighs deeply, hands you his favorite tactical watch, and says:",
+            dialogue: "\"Here, take this. I won't be needing it anymore. Honestly, everything is just too much. Everyone would be better off without me dragging things down.\"",
+            prompt: "What is your immediate response?",
+            choices: [
+                {
+                    text: "Take the watch, slap him on the shoulder, and say, \"Hey man, don't talk like that. You've got a lot to live for. Let's grab a beer later and put this behind us.\"",
+                    correct: false,
+                    feedback: "Incorrect. Brushing off the warning signs or trying to distract them with 'grabbing a beer' ignores their invitation to help. In saveTALK, you must acknowledge the distress directly."
+                },
+                {
+                    text: "Keep your attention fully on him. Refuse the watch for now and say, \"Miller, I hear how heavy things are for you right now, and saying everyone would be better off without you concerns me. Let's sit down and talk about this.\"",
+                    correct: true,
+                    feedback: "Correct! You successfully recognized the invitation to connect. You did not minimize his feelings or avoid the warning signs. This is the 'Talk' stage."
+                }
+            ]
+        },
+        {
+            stage: "A - ASK",
+            sitrep: "Miller sits down with you. He looks down at his hands, shoulders slumped. He admits he has been feeling completely hopeless and trapped by his thoughts. You need to assess if he is thinking about suicide.",
+            dialogue: "\"I just don't see any other way out of this pain.\"",
+            prompt: "How do you ask him about suicide?",
+            choices: [
+                {
+                    text: "\"You aren't thinking of doing something crazy, are you? You aren't planning on hurting yourself?\"",
+                    correct: false,
+                    feedback: "Incorrect. Asking if they are 'doing something crazy' or 'hurting yourself' is evasive and carries judgment. It makes it harder for the person to answer honestly."
+                },
+                {
+                    text: "Look him in the eyes and ask clearly: \"Miller, sometimes when people feel the way you do, they are thinking about suicide. Are you thinking about suicide?\"",
+                    correct: true,
+                    feedback: "Correct! The saveTALK standard requires you to use the word 'suicide' clearly and directly. This removes ambiguity and shows you are strong enough to hear his answer."
+                }
+            ]
+        },
+        {
+            stage: "L - LISTEN",
+            sitrep: "Miller looks up, eyes watering, and nods. \"Yes, I am. I've even thought about how to do it. It feels like the only option left.\"",
+            dialogue: "\"The pressure is just constant. I feel like a burden to my family and my unit.\"",
+            prompt: "How do you listen to him in this moment?",
+            choices: [
+                {
+                    text: "Listen closely, validate his pain, and say, \"That sounds incredibly exhausting and lonely, Miller. Thank you for trusting me enough to tell me. I want to understand what's going on.\"",
+                    correct: true,
+                    feedback: "Correct! Active listening requires empathy and validation. You didn't judge, change the topic, or offer quick fixes. You let him express his pain."
+                },
+                {
+                    text: "Immediately jump in with advice: \"Miller, you're not a burden! Think of your kids and your spouse. You have so much to lose. Let me tell you how I got through my tough times...\"",
+                    correct: false,
+                    feedback: "Incorrect. Shaming them with family obligations or immediately offering advice can shut down communication. It invalidates their emotional reality."
+                }
+            ]
+        },
+        {
+            stage: "K - KEEP SAFE",
+            sitrep: "Miller seems relieved that he was able to tell you the truth. However, you know you cannot handle this alone and must not keep it a secret. You need to connect him to a safety resource.",
+            dialogue: "\"Please don't tell the Commander or anyone else. I don't want to get flagged or lose my clearance.\"",
+            prompt: "What is your action to Keep Him Safe?",
+            choices: [
+                {
+                    text: "\"I won't say anything to the chain of command, but I need you to promise me you'll call the crisis line when you get home tonight. Here is the number.\"",
+                    correct: false,
+                    feedback: "Incorrect. Never agree to keep suicide alertness a secret, and do not leave them to seek help on their own. You must ensure they are connected to a safe resource directly."
+                },
+                {
+                    text: "\"I hear you, and I want to protect your career too, but keeping this a secret isn't safe. Let's contact the chaplain or the peer support network together right now. I will walk with you there.\"",
+                    correct: true,
+                    feedback: "Correct! Keeping safe means connecting them directly and actively to professional caregivers. Walking with them ensures they are safe and not left alone."
+                }
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+
+    function renderStep() {
+        const stepData = steps[currentStep];
+        const card = document.getElementById("activity-card");
+        
+        card.innerHTML = `
+            <div class="step-indicator">Step ${currentStep + 1} of 4: ${stepData.stage}</div>
+            <div class="situation-report">
+                <strong>SITREP:</strong> ${stepData.sitrep}
+                <div class="dialogue">${stepData.dialogue}</div>
+            </div>
+            <div class="prompt-text">${stepData.prompt}</div>
+            <div class="choices-container">
+                ${stepData.choices.map((choice, index) => `
+                    <button class="btn-choice" onclick="selectChoice(${index})">${choice.text}</button>
+                `).join('')}
+            </div>
+            <div id="feedback" class="feedback-box"></div>
+            <button id="btn-next" class="btn-next" onclick="nextStep()">Next Phase</button>
+        `;
+    }
+
+    function selectChoice(index) {
+        const stepData = steps[currentStep];
+        const choice = stepData.choices[index];
+        const feedbackBox = document.getElementById("feedback");
+        const nextBtn = document.getElementById("btn-next");
+        
+        // Disable choice buttons after selection
+        const buttons = document.querySelectorAll(".btn-choice");
+        buttons.forEach(btn => btn.disabled = true);
+
+        // Render feedback
+        feedbackBox.innerHTML = choice.feedback;
+        feedbackBox.style.display = "block";
+        feedbackBox.className = "feedback-box " + (choice.correct ? "correct" : "incorrect");
+
+        if (choice.correct) {
+            nextBtn.style.display = "block";
+        } else {
+            // Let them retry the choices if incorrect
+            setTimeout(() => {
+                buttons.forEach(btn => btn.disabled = false);
+            }, 3000);
+        }
+    }
+
+    function nextStep() {
+        currentStep++;
+        if (currentStep < steps.length) {
+            renderStep();
+        } else {
+            showCompletion();
+        }
+    }
+
+    function showCompletion() {
+        const card = document.getElementById("activity-card");
+        card.innerHTML = `
+            <div style="text-align: center; padding: 20px 0;">
+                <h2 style="color: var(--success); margin-bottom: 12px; text-transform: uppercase;">Mission Accomplished</h2>
+                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+                    You have successfully completed the saveTALK Suicide Alertness Simulation. You demonstrated critical peer-to-peer intervention skills by using the <strong>TALK</strong> steps.
+                </p>
+                <p>Click the button below to review your lessons learned briefing.</p>
+            </div>
+        `;
+        document.getElementById("btn-lessons-learned").style.display = "block";
+    }
+
+    function openModal() {
+        document.getElementById("modal-overlay").classList.add("active");
+    }
+
+    function closeModal() {
+        document.getElementById("modal-overlay").classList.remove("active");
+    }
+
+    // Initial Render
+    renderStep();
+</script>
+
+</body>
+</html>
